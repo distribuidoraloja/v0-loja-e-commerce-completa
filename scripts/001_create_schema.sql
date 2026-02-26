@@ -1,5 +1,14 @@
--- Admin users table
-CREATE TABLE IF NOT EXISTS public.admin_users (
+DROP TABLE IF EXISTS public.reviews CASCADE;
+DROP TABLE IF EXISTS public.order_items CASCADE;
+DROP TABLE IF EXISTS public.orders CASCADE;
+DROP TABLE IF EXISTS public.customers CASCADE;
+DROP TABLE IF EXISTS public.banners CASCADE;
+DROP TABLE IF EXISTS public.products CASCADE;
+DROP TABLE IF EXISTS public.subcategories CASCADE;
+DROP TABLE IF EXISTS public.categories CASCADE;
+DROP TABLE IF EXISTS public.admin_users CASCADE;
+
+CREATE TABLE public.admin_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
@@ -7,8 +16,7 @@ CREATE TABLE IF NOT EXISTS public.admin_users (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Categories
-CREATE TABLE IF NOT EXISTS public.categories (
+CREATE TABLE public.categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -18,8 +26,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Subcategories
-CREATE TABLE IF NOT EXISTS public.subcategories (
+CREATE TABLE public.subcategories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -29,8 +36,7 @@ CREATE TABLE IF NOT EXISTS public.subcategories (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Products
-CREATE TABLE IF NOT EXISTS public.products (
+CREATE TABLE public.products (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
@@ -40,7 +46,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
   subcategory_id UUID REFERENCES public.subcategories(id) ON DELETE SET NULL,
   image_url TEXT,
-  images TEXT[] DEFAULT '{}',
+  images TEXT[] DEFAULT ARRAY[]::TEXT[],
   unit TEXT DEFAULT 'un',
   stock INT DEFAULT 0,
   active BOOLEAN DEFAULT true,
@@ -48,8 +54,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Banners for hero slider
-CREATE TABLE IF NOT EXISTS public.banners (
+CREATE TABLE public.banners (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT,
   subtitle TEXT,
@@ -60,8 +65,7 @@ CREATE TABLE IF NOT EXISTS public.banners (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Customer users
-CREATE TABLE IF NOT EXISTS public.customers (
+CREATE TABLE public.customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   auth_user_id UUID UNIQUE,
   name TEXT NOT NULL,
@@ -78,8 +82,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Orders
-CREATE TABLE IF NOT EXISTS public.orders (
+CREATE TABLE public.orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
   status TEXT DEFAULT 'pending',
@@ -88,8 +91,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Order items
-CREATE TABLE IF NOT EXISTS public.order_items (
+CREATE TABLE public.order_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
   product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
@@ -99,8 +101,7 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Reviews
-CREATE TABLE IF NOT EXISTS public.reviews (
+CREATE TABLE public.reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
   customer_id UUID REFERENCES public.customers(id) ON DELETE SET NULL,
@@ -110,32 +111,3 @@ CREATE TABLE IF NOT EXISTS public.reviews (
   approved BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
-
--- RLS
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.subcategories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
-
--- Public read policies for store
-CREATE POLICY "categories_public_read" ON public.categories FOR SELECT USING (true);
-CREATE POLICY "subcategories_public_read" ON public.subcategories FOR SELECT USING (true);
-CREATE POLICY "products_public_read" ON public.products FOR SELECT USING (true);
-CREATE POLICY "banners_public_read" ON public.banners FOR SELECT USING (true);
-CREATE POLICY "reviews_public_read" ON public.reviews FOR SELECT USING (true);
-
--- Admin full access (using service role key in API routes)
-CREATE POLICY "admin_users_all" ON public.admin_users FOR ALL USING (true);
-CREATE POLICY "categories_all" ON public.categories FOR ALL USING (true);
-CREATE POLICY "subcategories_all" ON public.subcategories FOR ALL USING (true);
-CREATE POLICY "products_all" ON public.products FOR ALL USING (true);
-CREATE POLICY "banners_all" ON public.banners FOR ALL USING (true);
-CREATE POLICY "customers_all" ON public.customers FOR ALL USING (true);
-CREATE POLICY "orders_all" ON public.orders FOR ALL USING (true);
-CREATE POLICY "order_items_all" ON public.order_items FOR ALL USING (true);
-CREATE POLICY "reviews_all" ON public.reviews FOR ALL USING (true);
