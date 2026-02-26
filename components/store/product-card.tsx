@@ -14,6 +14,8 @@ type Product = {
   image_url: string | null
   unit: string
   stock: number
+  is_new?: boolean
+  is_discount?: boolean
 }
 
 export function addToCart(product: Product, qty = 1) {
@@ -23,14 +25,7 @@ export function addToCart(product: Product, qty = 1) {
     if (idx >= 0) {
       cart[idx].qty += qty
     } else {
-      cart.push({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image_url: product.image_url,
-        unit: product.unit,
-        qty,
-      })
+      cart.push({ id: product.id, name: product.name, price: product.price, image_url: product.image_url, unit: product.unit, qty })
     }
     localStorage.setItem("cart", JSON.stringify(cart))
     window.dispatchEvent(new Event("cart-updated"))
@@ -41,42 +36,79 @@ export function addToCart(product: Product, qty = 1) {
 }
 
 export default function ProductCard({ product }: { product: Product }) {
-  const discount = product.original_price
+  const discount = product.original_price && product.original_price > product.price
     ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
     : 0
 
   return (
-    <div className="bg-card rounded-xl border border-border overflow-hidden group hover:shadow-lg transition-shadow">
-      <Link href={`/produto/${product.slug}`} className="block relative aspect-square overflow-hidden bg-muted">
-        {product.image_url ? (
-          <Image src={product.image_url} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Package className="w-12 h-12 text-muted-foreground" />
-          </div>
+    <div className="bg-card rounded-2xl border border-border overflow-hidden group hover:shadow-xl transition-all duration-300 relative flex flex-col">
+      {/* Tags */}
+      <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
+        {product.is_new && (
+          <span className="px-2.5 py-1 bg-[#22c55e] text-white text-[10px] font-bold uppercase tracking-wide rounded-md shadow-sm">
+            Novo
+          </span>
         )}
         {discount > 0 && (
-          <span className="absolute top-2 left-2 px-2 py-1 bg-primary text-primary-foreground text-xs font-bold rounded">-{discount}%</span>
+          <span className="px-2.5 py-1 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wide rounded-md shadow-sm">
+            -{discount}% OFF
+          </span>
+        )}
+        {product.is_discount && discount === 0 && (
+          <span className="px-2.5 py-1 bg-amber-500 text-white text-[10px] font-bold uppercase tracking-wide rounded-md shadow-sm">
+            Oferta
+          </span>
+        )}
+      </div>
+
+      <Link href={`/produto/${product.slug}`} className="block relative aspect-square overflow-hidden bg-muted/30">
+        {product.image_url ? (
+          <Image
+            src={product.image_url}
+            alt={product.name}
+            fill
+            className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted/50">
+            <Package className="w-16 h-16 text-muted-foreground/30" />
+          </div>
         )}
       </Link>
-      <div className="p-4">
+
+      <div className="p-4 flex flex-col flex-1">
         <Link href={`/produto/${product.slug}`}>
-          <h3 className="text-sm font-medium text-card-foreground line-clamp-2 mb-2 hover:text-primary transition">{product.name}</h3>
+          <h3 className="text-sm font-semibold text-card-foreground line-clamp-2 mb-3 hover:text-primary transition leading-snug min-h-[2.5rem]">
+            {product.name}
+          </h3>
         </Link>
-        <div className="mb-3">
+
+        <div className="mt-auto">
           {product.original_price && product.original_price > product.price && (
-            <p className="text-xs text-muted-foreground line-through">R$ {Number(product.original_price).toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground line-through mb-0.5">
+              R$ {Number(product.original_price).toFixed(2).replace(".", ",")}
+            </p>
           )}
-          <p className="text-lg font-bold text-primary">R$ {Number(product.price).toFixed(2)}</p>
-          <p className="text-xs text-muted-foreground">/{product.unit}</p>
+          <div className="flex items-baseline gap-1.5 mb-1">
+            <span className="text-xl font-bold text-primary">
+              R$ {Number(product.price).toFixed(2).replace(".", ",")}
+            </span>
+          </div>
+          {discount > 0 && product.original_price && (
+            <p className="text-[11px] text-[#22c55e] font-semibold mb-3">
+              Voce economiza R$ {(product.original_price - product.price).toFixed(2).replace(".", ",")}
+            </p>
+          )}
+          {!discount && <div className="mb-3" />}
+
+          <button
+            onClick={() => addToCart(product)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 active:scale-[0.97] transition-all"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Adicionar
+          </button>
         </div>
-        <button
-          onClick={() => addToCart(product)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition"
-        >
-          <ShoppingCart className="w-4 h-4" />
-          Adicionar
-        </button>
       </div>
     </div>
   )

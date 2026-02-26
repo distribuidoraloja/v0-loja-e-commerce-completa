@@ -29,7 +29,6 @@ export async function POST(request: NextRequest) {
       })
 
     if (uploadError) {
-      console.log("[v0] Upload error:", uploadError.message)
       return NextResponse.json({ error: uploadError.message }, { status: 500 })
     }
 
@@ -38,7 +37,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: urlData.publicUrl })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erro ao fazer upload"
-    console.log("[v0] Upload catch error:", message)
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

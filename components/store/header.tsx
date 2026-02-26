@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Search, ShoppingCart, User, Menu, X, Phone } from "lucide-react"
+import { Search, ShoppingCart, User, Menu, X, Phone, ChevronDown } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 
 const supabase = createClient()
@@ -21,7 +21,6 @@ export default function StoreHeader() {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUser({ email: data.user.email || "", name: data.user.user_metadata?.name })
     })
-    // Cart from localStorage
     try {
       const cart = JSON.parse(localStorage.getItem("cart") || "[]")
       setCartCount(cart.reduce((acc: number, item: { qty: number }) => acc + item.qty, 0))
@@ -56,7 +55,7 @@ export default function StoreHeader() {
       {/* Main header */}
       <div className="bg-card border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-          <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden text-foreground">
+          <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden text-foreground" aria-label="Menu">
             {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
 
@@ -80,9 +79,9 @@ export default function StoreHeader() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar produtos..."
-                className="w-full pl-4 pr-12 py-2.5 rounded-lg border border-border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm"
+                className="w-full pl-4 pr-12 py-2.5 rounded-full border border-border bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none text-sm"
               />
-              <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 p-2 bg-primary rounded-md text-primary-foreground hover:bg-primary/90 transition">
+              <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 p-2 bg-primary rounded-full text-primary-foreground hover:bg-primary/90 transition">
                 <Search className="w-4 h-4" />
               </button>
             </form>
@@ -102,14 +101,22 @@ export default function StoreHeader() {
           </div>
         </div>
 
-        {/* Categories nav */}
-        <nav className="hidden lg:block border-t border-border">
+        {/* Categories nav - centered */}
+        <nav className="hidden lg:block border-t border-border bg-muted/30">
           <div className="max-w-7xl mx-auto px-4">
-            <ul className="flex items-center gap-1">
+            <ul className="flex items-center justify-center gap-0">
+              <li>
+                <Link href="/produtos" className="group flex items-center gap-1 px-5 py-3 text-sm font-semibold text-foreground hover:text-primary transition relative">
+                  <ChevronDown className="w-3.5 h-3.5" />
+                  Todos os Produtos
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-center" />
+                </Link>
+              </li>
               {categories.map((cat) => (
                 <li key={cat.id}>
-                  <Link href={`/categoria/${cat.slug}`} className="block px-4 py-2.5 text-sm font-medium text-foreground hover:text-primary hover:bg-primary/5 transition rounded-lg">
+                  <Link href={`/categoria/${cat.slug}`} className="group block px-5 py-3 text-sm font-medium text-foreground hover:text-primary transition relative">
                     {cat.name}
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-center" />
                   </Link>
                 </li>
               ))}
@@ -120,13 +127,18 @@ export default function StoreHeader() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="lg:hidden bg-card border-b border-border shadow-lg">
+        <div className="lg:hidden bg-card border-b border-border shadow-lg animate-in slide-in-from-top-2 duration-200">
           <div className="p-4">
             <form action={`/busca?q=${search}`} className="relative mb-4">
-              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar produtos..." className="w-full pl-4 pr-12 py-2.5 rounded-lg border border-border bg-background text-foreground text-sm outline-none" />
-              <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 p-2 bg-primary rounded-md text-primary-foreground"><Search className="w-4 h-4" /></button>
+              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar produtos..." className="w-full pl-4 pr-12 py-2.5 rounded-full border border-border bg-background text-foreground text-sm outline-none" />
+              <button type="submit" className="absolute right-1 top-1/2 -translate-y-1/2 p-2 bg-primary rounded-full text-primary-foreground"><Search className="w-4 h-4" /></button>
             </form>
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
+              <li>
+                <Link href="/produtos" onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm font-semibold text-foreground hover:text-primary hover:bg-primary/5 transition rounded-lg">
+                  Todos os Produtos
+                </Link>
+              </li>
               {categories.map((cat) => (
                 <li key={cat.id}>
                   <Link href={`/categoria/${cat.slug}`} onClick={() => setMenuOpen(false)} className="block px-4 py-2.5 text-sm font-medium text-foreground hover:text-primary hover:bg-primary/5 transition rounded-lg">
