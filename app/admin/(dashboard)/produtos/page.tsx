@@ -83,13 +83,16 @@ export default function ProdutosPage() {
       try {
         const res = await fetch("/api/upload", { method: "POST", body: fd })
         const data = await res.json()
+        console.log("[v0] Upload response:", data)
         if (data.url) {
           newImages.push(data.url)
           toast.success(`Imagem "${file.name}" enviada!`)
         } else {
+          console.log("[v0] Upload error response:", data)
           toast.error(`Erro: ${data.error || "Falha no upload"}`)
         }
-      } catch {
+      } catch (err) {
+        console.log("[v0] Upload fetch error:", err)
         toast.error("Erro ao fazer upload")
       }
     }

@@ -1,5 +1,10 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,17 +14,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nenhum arquivo enviado" }, { status: 400 })
     }
 
-    const supabase = await createClient()
-
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg"
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${ext}`
     const filePath = `uploads/${fileName}`
 
-    // Convert file to ArrayBuffer then to Buffer for reliable upload
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from("images")
       .upload(filePath, buffer, {
         contentType: file.type,
@@ -31,12 +33,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 })
     }
 
-    const { data: urlData } = supabase.storage.from("images").getPublicUrl(filePath)
+    const { data: urlData } = supabaseAdmin.storage.from("images").getPublicUrl(filePath)
 
-    console.log("[v0] Upload success, URL:", urlData.publicUrl)
     return NextResponse.json({ url: urlData.publicUrl })
-  } catch (err) {
-    console.log("[v0] Upload catch error:", err)
-    return NextResponse.json({ error: "Erro ao fazer upload" }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erro ao fazer upload"
+    console.log("[v0] Upload catch error:", message)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
