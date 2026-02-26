@@ -3,7 +3,7 @@
 import { useState } from "react"
 import useSWR from "swr"
 import { createClient } from "@/lib/supabase/client"
-import { Plus, Pencil, Trash2, X, Upload, ImageIcon } from "lucide-react"
+import { Plus, Pencil, Trash2, X, Upload, ImageIcon, Package } from "lucide-react"
 import { toast } from "sonner"
 import Image from "next/image"
 
