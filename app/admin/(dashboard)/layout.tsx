@@ -6,7 +6,7 @@ import Link from "next/link"
 import {
   LayoutDashboard, Package, FolderTree, Layers, ShoppingCart,
   Star, Image as ImageIcon, LogOut, Menu, X, ChevronRight,
-  MessageCircle, BarChart3, ExternalLink
+  MessageCircle, BarChart3, ExternalLink, Settings, Quote
 } from "lucide-react"
 
 const menuItems = [
@@ -19,6 +19,8 @@ const menuItems = [
   { label: "Produtos", href: "/admin/produtos", icon: Package },
   { label: "Avaliacoes", href: "/admin/avaliacoes", icon: Star },
   { label: "Banners", href: "/admin/banners", icon: ImageIcon },
+  { label: "Depoimentos", href: "/admin/depoimentos", icon: Quote },
+  { label: "Configuracoes", href: "/admin/configuracoes", icon: Settings },
 ]
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
