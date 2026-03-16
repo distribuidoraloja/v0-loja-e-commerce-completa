@@ -6,27 +6,42 @@ import HeroBanner from "@/components/store/hero-banner"
 import ProductCard from "@/components/store/product-card"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Truck, ShieldCheck, Award, Headphones } from "lucide-react"
+import { ArrowRight, Truck, ShieldCheck, Award, Headphones, Star, Quote, ChevronLeft, ChevronRight as ChevronRightIcon } from "lucide-react"
+import { useState } from "react"
 
 const supabase = createClient()
 
 async function fetchHome() {
-  const [featuredRes, categoriesRes, newRes, discountRes] = await Promise.all([
+  const [featuredRes, categoriesRes, newRes, discountRes, testimonialsRes] = await Promise.all([
     supabase.from("products").select("*").eq("active", true).eq("featured", true).order("created_at", { ascending: false }).limit(8),
     supabase.from("categories").select("*, products(id)").eq("active", true).order("sort_order"),
     supabase.from("products").select("*").eq("active", true).eq("is_new", true).order("created_at", { ascending: false }).limit(8),
     supabase.from("products").select("*").eq("active", true).eq("is_discount", true).order("created_at", { ascending: false }).limit(8),
+    supabase.from("testimonials").select("*").eq("active", true).order("sort_order").limit(12),
   ])
   return {
     featured: featuredRes.data || [],
     categories: categoriesRes.data || [],
     newProducts: newRes.data || [],
     discounts: discountRes.data || [],
+    testimonials: testimonialsRes.data || [],
   }
 }
 
 export default function HomePage() {
   const { data, isLoading } = useSWR("store-home", fetchHome)
+  const [testimonialIndex, setTestimonialIndex] = useState(0)
+
+  const nextTestimonial = () => {
+    if (data?.testimonials) {
+      setTestimonialIndex((prev) => (prev + 1) % Math.ceil(data.testimonials.length / 3))
+    }
+  }
+  const prevTestimonial = () => {
+    if (data?.testimonials) {
+      setTestimonialIndex((prev) => (prev - 1 + Math.ceil(data.testimonials.length / 3)) % Math.ceil(data.testimonials.length / 3))
+    }
+  }
 
   if (isLoading) {
     return (
@@ -178,6 +193,78 @@ export default function HomePage() {
             {data.discounts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* Testimonials */}
+      {data?.testimonials && data.testimonials.length > 0 && (
+        <section className="bg-secondary py-16">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl md:text-3xl font-bold text-secondary-foreground">O Que Nossos Clientes Dizem</h2>
+              <p className="text-secondary-foreground/70 mt-2">Mais de 1.000 clientes satisfeitos em todo o Brasil</p>
+            </div>
+            
+            <div className="relative">
+              <div className="overflow-hidden">
+                <div 
+                  className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${testimonialIndex * 100}%)` }}
+                >
+                  {Array.from({ length: Math.ceil(data.testimonials.length / 3) }).map((_, pageIdx) => (
+                    <div key={pageIdx} className="w-full flex-shrink-0 grid grid-cols-1 md:grid-cols-3 gap-6 px-1">
+                      {data.testimonials.slice(pageIdx * 3, pageIdx * 3 + 3).map((t) => (
+                        <div key={t.id} className="bg-card rounded-2xl p-6 shadow-lg border border-border">
+                          <div className="flex gap-0.5 mb-4">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`w-5 h-5 ${i < t.rating ? "fill-yellow-400 text-yellow-400" : "text-muted"}`} />
+                            ))}
+                          </div>
+                          <Quote className="w-8 h-8 text-primary/20 mb-2" />
+                          <p className="text-foreground/80 text-sm leading-relaxed mb-4 line-clamp-4">{t.comment}</p>
+                          <div className="flex items-center gap-3 pt-4 border-t border-border">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-primary font-bold">{t.name.charAt(0)}</span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground text-sm">{t.name}</p>
+                              {t.city && <p className="text-xs text-muted-foreground">{t.city}{t.state ? `, ${t.state}` : ""}</p>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {data.testimonials.length > 3 && (
+                <div className="flex items-center justify-center gap-4 mt-8">
+                  <button
+                    onClick={prevTestimonial}
+                    className="w-10 h-10 rounded-full border border-border bg-card flex items-center justify-center hover:bg-muted transition"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex gap-2">
+                    {Array.from({ length: Math.ceil(data.testimonials.length / 3) }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setTestimonialIndex(i)}
+                        className={`w-2.5 h-2.5 rounded-full transition ${i === testimonialIndex ? "bg-primary" : "bg-border"}`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    onClick={nextTestimonial}
+                    className="w-10 h-10 rounded-full border border-border bg-card flex items-center justify-center hover:bg-muted transition"
+                  >
+                    <ChevronRightIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </section>
       )}
