@@ -1,5 +1,13 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
+import { createClient as createServerClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
+
+// Admin client to create users with autoconfirm
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,19 +16,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nome, email e senha sao obrigatorios" }, { status: 400 })
     }
 
-    const supabase = await createClient()
-
-    // Sign up without email confirmation
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Create user with admin client - auto confirmed
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: { name, cpf, phone },
-      },
+      email_confirm: true, // Auto-confirm email
+      user_metadata: { name, cpf, phone },
     })
 
     if (authError) {
-      if (authError.message.includes("already registered")) {
+      if (authError.message.includes("already") || authError.message.includes("exists")) {
         return NextResponse.json({ error: "Este email ja esta cadastrado" }, { status: 400 })
       }
       return NextResponse.json({ error: authError.message }, { status: 400 })
@@ -28,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (authData.user) {
       // Create customer record
-      await supabase.from("customers").upsert({
+      await supabaseAdmin.from("customers").upsert({
         auth_user_id: authData.user.id,
         name,
         email,
@@ -36,21 +41,15 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
       }, { onConflict: "email" })
 
-      // Auto sign in after registration
+      // Now sign in with server client to set session cookies
+      const supabase = await createServerClient()
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (signInError) {
-        // If sign in fails due to email confirmation, return success anyway
-        // The user will need to confirm email
-        return NextResponse.json({ 
-          success: true, 
-          user: authData.user,
-          session: null,
-          message: "Cadastro realizado. Verifique seu email se necessario."
-        })
+        return NextResponse.json({ error: "Erro ao fazer login automatico" }, { status: 500 })
       }
 
       return NextResponse.json({ 
@@ -60,9 +59,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ success: true, user: authData.user })
+    return NextResponse.json({ error: "Erro ao criar usuario" }, { status: 500 })
   } catch (err) {
-    console.error("Register error:", err)
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 })
+    const msg = err instanceof Error ? err.message : "Erro interno"
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
