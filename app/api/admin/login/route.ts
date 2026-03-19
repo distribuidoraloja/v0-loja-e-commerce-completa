@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
+import bcrypt from "bcryptjs"
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,23 +11,29 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Use SQL function to verify password with pgcrypto crypt()
-    const { data: admin, error } = await supabase.rpc("verify_admin_password", {
-      p_email: email,
-      p_password: password,
-    })
+    // Buscar admin pelo email
+    const { data: admin, error } = await supabase
+      .from("admin_users")
+      .select("*")
+      .eq("email", email)
+      .single()
 
-    if (error || !admin || admin.length === 0) {
+    if (error || !admin) {
       return NextResponse.json({ error: "Credenciais invalidas" }, { status: 401 })
     }
 
-    const adminUser = admin[0]
+    // Verificar senha com bcryptjs
+    const isValid = await bcrypt.compare(password, admin.password_hash)
+    if (!isValid) {
+      return NextResponse.json({ error: "Credenciais invalidas" }, { status: 401 })
+    }
+
     const response = NextResponse.json({ 
       success: true, 
-      admin: { id: adminUser.id, email: adminUser.email, name: adminUser.name } 
+      admin: { id: admin.id, email: admin.email, name: admin.name } 
     })
     
-    response.cookies.set("admin_session", adminUser.id, {
+    response.cookies.set("admin_session", admin.id, {
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
