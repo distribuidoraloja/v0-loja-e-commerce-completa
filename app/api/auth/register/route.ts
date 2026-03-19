@@ -10,31 +10,59 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
+    // Sign up without email confirmation
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${request.nextUrl.origin}/`,
         data: { name, cpf, phone },
       },
     })
 
     if (authError) {
+      if (authError.message.includes("already registered")) {
+        return NextResponse.json({ error: "Este email ja esta cadastrado" }, { status: 400 })
+      }
       return NextResponse.json({ error: authError.message }, { status: 400 })
     }
 
     if (authData.user) {
-      await supabase.from("customers").insert({
+      // Create customer record
+      await supabase.from("customers").upsert({
         auth_user_id: authData.user.id,
         name,
         email,
         cpf: cpf || null,
         phone: phone || null,
+      }, { onConflict: "email" })
+
+      // Auto sign in after registration
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (signInError) {
+        // If sign in fails due to email confirmation, return success anyway
+        // The user will need to confirm email
+        return NextResponse.json({ 
+          success: true, 
+          user: authData.user,
+          session: null,
+          message: "Cadastro realizado. Verifique seu email se necessario."
+        })
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        user: signInData.user,
+        session: signInData.session
       })
     }
 
     return NextResponse.json({ success: true, user: authData.user })
-  } catch {
+  } catch (err) {
+    console.error("Register error:", err)
     return NextResponse.json({ error: "Erro interno" }, { status: 500 })
   }
 }

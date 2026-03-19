@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { User, Mail, Lock, Eye, EyeOff, Phone, CreditCard } from "lucide-react"
 import { toast } from "sonner"
-import { createClient } from "@/lib/supabase/client"
 
 function maskCPF(value: string) {
   return value
@@ -57,12 +56,10 @@ export default function RegisterPage() {
       const data = await res.json()
       if (!res.ok) { toast.error(data.error || "Erro ao cadastrar"); return }
 
-      // Login automatico apos cadastro
-      const supabase = createClient()
-      await supabase.auth.signInWithPassword({ email: form.email, password: form.password })
-
       toast.success("Cadastro realizado com sucesso!")
-      router.push("/")
+      
+      // Redirect with full page reload to ensure session is recognized
+      window.location.href = "/"
     } catch {
       toast.error("Erro de conexao")
     } finally {
