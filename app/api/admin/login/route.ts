@@ -1,10 +1,5 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,23 +8,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email e senha obrigatorios" }, { status: 400 })
     }
 
-    // Use SQL to verify password with pgcrypto crypt() function
-    const { data, error } = await supabaseAdmin.rpc("verify_admin_password", {
+    const supabase = await createClient()
+
+    // Use SQL function to verify password with pgcrypto crypt()
+    const { data: admin, error } = await supabase.rpc("verify_admin_password", {
       p_email: email,
       p_password: password,
     })
 
-    if (error || !data || data.length === 0) {
+    if (error || !admin || admin.length === 0) {
       return NextResponse.json({ error: "Credenciais invalidas" }, { status: 401 })
     }
 
-    const admin = data[0]
+    const adminUser = admin[0]
     const response = NextResponse.json({ 
       success: true, 
-      admin: { id: admin.id, email: admin.email, name: admin.name } 
+      admin: { id: adminUser.id, email: adminUser.email, name: adminUser.name } 
     })
     
-    response.cookies.set("admin_session", admin.id, {
+    response.cookies.set("admin_session", adminUser.id, {
       httpOnly: false,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
@@ -39,8 +36,8 @@ export async function POST(request: NextRequest) {
     
     return response
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erro interno"
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error("Admin login error:", err)
+    return NextResponse.json({ error: "Erro interno" }, { status: 500 })
   }
 }
 
